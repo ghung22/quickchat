@@ -7,7 +7,7 @@ public class Server {
     Socket s;
     String ip = "localhost";
     Integer port = 7044;
-    GUI gui = new GUI();
+    GUI gui = new GUI("Quickchat Server");
 
     DataInputStream dis;
 
@@ -25,10 +25,26 @@ public class Server {
 
     public void listen() {
         try {
-            String msg = dis.readUTF();
-            System.out.println("> " + msg);
+            String[] msg = dis.readUTF().split("»", 2);
+            try {
+                respond(Integer.parseInt(msg[0]), msg[1]);
+            } catch (Exception e) {
+                gui.sendError("Error while resolving message: " + e.getMessage());
+            }
         } catch (Exception e) {
             gui.sendError("Error while listening to client: " + e.getMessage());
+        }
+    }
+
+    private void respond(Integer msgCode, String msg) {
+        switch (msgCode) {
+            case 356: // Chat msg
+                System.out.println("> " + msg);
+                break;
+
+            default:
+                gui.sendError("Unresolvable message: code " + msgCode + " » " + msg);
+                break;
         }
     }
 

@@ -22,11 +22,11 @@ public class Client {
 
     public void speak() {
         try {
-            dos.writeUTF("Hello world!");
+            dos.writeUTF("356»Hello world!");
             dos.flush();
             dos.close();
         } catch (Exception e) {
-            gui.sendError("Error while sending text: " + e.getMessage());
+            gui.sendError("Error while sending message: " + e.getMessage());
         }
     }
     
