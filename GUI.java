@@ -1,18 +1,29 @@
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
 
 public class GUI {
     JFrame frame;
 
     Boolean noGUI = false;
     String timestamp;
+
+    Integer paddingDefault = 20, marginDefault = 12;
 
     GUI() {
         this(false);
@@ -22,17 +33,16 @@ public class GUI {
         this.noGUI = noGUI;
         if (!noGUI) {
             sendLoading("Building GUI");
+
             // Create frame
             frame = new JFrame("Quickchat");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            // Create title
-            JLabel title = new JLabel("Quickchat Messenger");
-            title.setFont(title.getFont().deriveFont(56.0f));
-            JPanel titPanel = new JPanel();
-            titPanel.setBorder(new EmptyBorder(0, 20, 0, 0));
-            titPanel.add(title);
+
             // Put elements into frame
-            frame.add(titPanel, BorderLayout.NORTH);
+            frame.add(newTitle(), BorderLayout.NORTH);
+            frame.add(newFiller(), BorderLayout.WEST);
+            frame.add(newLoginForm(), BorderLayout.CENTER);
+            frame.add(newFiller(), BorderLayout.EAST);
             frame.pack();
             frame.setSize(800, 600);
             frame.setLocationRelativeTo(null);
@@ -43,6 +53,60 @@ public class GUI {
     GUI(String title) {
         this(false);
         frame.setTitle(title);
+    }
+
+    private JPanel newTitle() {
+        JLabel title = new JLabel("Quickchat Messenger");
+        title.setFont(title.getFont().deriveFont(56.0f));
+        JPanel titlePanel = new JPanel();
+        titlePanel.add(title);
+        return titlePanel;
+    }
+
+    private JPanel newLoginForm() {
+        // Reusables
+        Dimension d = new Dimension(256, 32);
+        CompoundBorder cb = BorderFactory.createCompoundBorder(new LineBorder(Color.DARK_GRAY, 2),
+                new EmptyBorder(0, 8, 0, 8));
+
+        // Username
+        JTextField userField = new JTextField();
+        userField.setPreferredSize(d);
+        userField.setBorder(cb);
+        JPanel userPanel = new JPanel();
+        userPanel.add(newFiller());
+        userPanel.add(userField);
+        userPanel.add(newFiller());
+        userPanel.setBorder(BorderFactory.createTitledBorder("Username:"));
+
+        // Password
+        JPasswordField passwordField = new JPasswordField();
+        passwordField.setPreferredSize(d);
+        passwordField.setBorder(cb);
+        JPanel passwordPanel = new JPanel();
+        passwordPanel.add(newFiller());
+        passwordPanel.add(passwordField);
+        passwordPanel.add(newFiller());
+        passwordPanel.setBorder(BorderFactory.createTitledBorder("Password:"));
+
+        // Buttons
+
+        // Form
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.add(newFiller());
+        formPanel.add(userPanel);
+        formPanel.add(newFiller());
+        formPanel.add(passwordPanel);
+        formPanel.add(newFiller());
+        // TODO: buttons
+        formPanel.add(newFiller());
+
+        return formPanel;
+    }
+
+    private Box.Filler newFiller() {
+        return new Box.Filler(new Dimension(0, 0), new Dimension(128, 64), new Dimension(Short.MAX_VALUE, 640));
     }
 
     public void sendLoading(String msg) {
