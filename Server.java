@@ -38,7 +38,7 @@ public class Server {
 
     private void respond(Integer msgCode, String msg) {
         switch (msgCode) {
-            case 356: // Chat msg
+            case 356:
                 System.out.println("> " + msg);
                 break;
 

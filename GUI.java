@@ -1,29 +1,32 @@
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
-public class GUI {
-    JFrame frame;
-
+public class GUI extends JFrame implements ActionListener {
     Boolean noGUI = false;
     String timestamp;
+    Integer screenID = 0;
+    ArrayList<JTextField> input = new ArrayList<JTextField>();
 
-    Integer paddingDefault = 20, marginDefault = 12;
+    // Integer paddingDefault = 20, marginDefault = 12;
 
     GUI() {
         this(false);
@@ -35,24 +38,38 @@ public class GUI {
             sendLoading("Building GUI");
 
             // Create frame
-            frame = new JFrame("Quickchat");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            setTitle("Quickchat");
+            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            // Put elements into frame
-            frame.add(newTitle(), BorderLayout.NORTH);
-            frame.add(newFiller(), BorderLayout.WEST);
-            frame.add(newLoginForm(), BorderLayout.CENTER);
-            frame.add(newFiller(), BorderLayout.EAST);
-            frame.pack();
-            frame.setSize(800, 600);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
+            // Show Login menu
+            loginStart();
+
+            // Show frame
+            pack();
+            setSize(800, 600);
+            setLocationRelativeTo(null);
+            setVisible(true);
         }
     }
 
     GUI(String title) {
         this(false);
-        frame.setTitle(title);
+        setTitle(title);
+    }
+
+    private void cleanup() {
+        input.clear();
+    }
+
+    private void loginStart() {
+        cleanup();
+
+        // Put elements into frame
+        add(newTitle(), BorderLayout.NORTH);
+        add(newFiller(), BorderLayout.WEST);
+        add(newLoginForm(), BorderLayout.CENTER);
+        add(newFiller(), BorderLayout.EAST);
+        screenID = 76;
     }
 
     private JPanel newTitle() {
@@ -63,46 +80,94 @@ public class GUI {
         return titlePanel;
     }
 
-    private JPanel newLoginForm() {
-        // Reusables
-        Dimension d = new Dimension(256, 32);
-        CompoundBorder cb = BorderFactory.createCompoundBorder(new LineBorder(Color.DARK_GRAY, 2),
-                new EmptyBorder(0, 8, 0, 8));
+    private JPanel newLoginForm() {// Create panel
+        JPanel formPanel = new JPanel() {
+            {
+                setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-        // Username
-        JTextField userField = new JTextField();
-        userField.setPreferredSize(d);
-        userField.setBorder(cb);
-        JPanel userPanel = new JPanel();
-        userPanel.add(newFiller());
-        userPanel.add(userField);
-        userPanel.add(newFiller());
-        userPanel.setBorder(BorderFactory.createTitledBorder("Username:"));
-
-        // Password
-        JPasswordField passwordField = new JPasswordField();
-        passwordField.setPreferredSize(d);
-        passwordField.setBorder(cb);
-        JPanel passwordPanel = new JPanel();
-        passwordPanel.add(newFiller());
-        passwordPanel.add(passwordField);
-        passwordPanel.add(newFiller());
-        passwordPanel.setBorder(BorderFactory.createTitledBorder("Password:"));
-
-        // Buttons
-
-        // Form
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.add(newFiller());
-        formPanel.add(userPanel);
-        formPanel.add(newFiller());
-        formPanel.add(passwordPanel);
-        formPanel.add(newFiller());
-        // TODO: buttons
-        formPanel.add(newFiller());
+                // Put elements into panel
+                add(newFiller());
+                add(newInput("Username"));
+                add(newFiller());
+                add(newInput("Password", true));
+                add(newFiller());
+                add(newButton("Login"));
+                add(newFiller());
+            }
+        };
 
         return formPanel;
+    }
+
+    private JPanel newInput(String str, Boolean hideText) {
+        // Cerate field
+        JPasswordField field = new JPasswordField() {
+            {
+                if (!hideText) {
+                    setEchoChar((char) 0);
+                }
+                setPreferredSize(new Dimension(256, 32));
+                setBorder(BorderFactory.createCompoundBorder(new LineBorder(Color.DARK_GRAY, 2),
+                        new EmptyBorder(0, 8, 0, 8)));
+            }
+        };
+
+        // Add field to input array
+        input.add(field);
+
+        // Add field to titled panel
+        JPanel panel = new JPanel() {
+            {
+                add(newFiller());
+                add(field);
+                add(newFiller());
+                setBorder(BorderFactory.createTitledBorder(str + ":"));
+            }
+        };
+        return panel;
+    }
+
+    private JPanel newInput(String str) {
+        return newInput(str, false);
+    }
+
+    private JPanel newButton(String str) {
+        // Create button
+        JButton button = new JButton(str) {
+            {
+                setSize(128, 96);
+                setMaximumSize(getSize());
+            }
+        };
+        button.addActionListener(this);
+
+        // Add button to panel
+        JPanel panel = new JPanel() {
+            {
+                setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
+                add(newFiller());
+                add(button);
+                add(newFiller());
+            }
+        };
+        return panel;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        ArrayList<String> strs = new ArrayList<String>();
+        for (JTextField i : input) {
+            strs.add(i.getText());
+        }
+        switch (screenID) {
+            case 76:
+                sendNotice(strs.get(0) + ": " + strs.get(1));
+                break;
+
+            default:
+                sendError("Unidentifiable screen");
+                break;
+        }
     }
 
     private Box.Filler newFiller() {
