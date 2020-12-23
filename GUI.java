@@ -8,6 +8,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
@@ -29,7 +30,7 @@ import java.io.File;
 @SuppressWarnings("serial")
 public class GUI extends JFrame implements ActionListener {
     Boolean noGUI = false;
-    String timestamp, title = "Quickchat Messenger";
+    String timestamp, title = "Quickchat Messenger", server = "localhost", port = "7044";
     Dimension winSize = new Dimension(800, 600);
     Integer screenID = 0;
     ArrayList<JTextField> input = new ArrayList<JTextField>();
@@ -76,19 +77,29 @@ public class GUI extends JFrame implements ActionListener {
             {
                 gridx = 0;
                 gridy = 0;
-                weightx = 1.0;
+                anchor = NORTH;
+                weightx = weighty = 1.0;
             }
         }, cForm = new GridBagConstraints() {
             {
                 gridx = 0;
                 gridy = 1;
+                anchor = CENTER;
                 weightx = 1.0;
+            }
+        }, cFooter = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 2;
+                anchor = SOUTHEAST;
+                weightx = weighty = 1.0;
             }
         };
         JPanel loginPanel = new JPanel(new GridBagLayout()) {
             {
                 add(newTitle(), cTitle);
                 add(newLoginForm(), cForm);
+                add(newLoginFooter(), cFooter);
             }
         };
         add(loginPanel);
@@ -162,9 +173,18 @@ public class GUI extends JFrame implements ActionListener {
         };
     }
 
-    private JPanel newInput(String str, Boolean hideText) {
+    private JPanel newLoginFooter() {
+        return new JPanel() {
+            {
+                add(newButton("Connection Settings"));
+                add(newButton("Forgot your password?"));
+            }
+        };
+    }
+
+    private JPanel newInput(String str, Boolean hideText, String text) {
         // Cerate field
-        JPasswordField field = new JPasswordField() {
+        JPasswordField field = new JPasswordField(text) {
             {
                 if (!hideText) {
                     setEchoChar((char) 0);
@@ -194,7 +214,15 @@ public class GUI extends JFrame implements ActionListener {
     }
 
     private JPanel newInput(String str) {
-        return newInput(str, false);
+        return newInput(str, false, "");
+    }
+
+    private JPanel newInput(String str, Boolean hideText) {
+        return newInput(str, hideText, "");
+    }
+
+    private JPanel newInput(String str, String text) {
+        return newInput(str, false, text);
     }
 
     private JPanel newButton(String str, Dimension size) {
@@ -221,18 +249,37 @@ public class GUI extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        ArrayList<String> strs = new ArrayList<String>();
-        for (JTextField i : input) {
-            strs.add(i.getText());
-        }
-        switch (screenID) {
-            case 76:
-                mainStart(strs.get(0));
-                return;
+        ArrayList<String> strs = getInputStrings();
+        Object o = e.getSource();
+        if (o instanceof JButton) {
+            switch (screenID) {
+                case 76:
+                    switch (((JButton) o).getText()) {
+                        case "Login":
+                            mainStart(strs.get(0));
+                            return;
 
-            case 33:
-                Object o = e.getSource();
-                if (o instanceof JButton) {
+                        case "Connection Settings":
+                            JPanel dialog = newConnectSettings();
+                            if (JOptionPane.showConfirmDialog(this, dialog, "Connection Settings",
+                                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+                                server = input.get(2).getText();
+                                port = input.get(3).getText();
+                            }
+                            input.remove(3);
+                            input.remove(2);
+                            return;
+
+                        case "Forgot your password?":
+                            return;
+
+                        default:
+                            sendAlert("Unidentifiable button");
+                            break;
+                    }
+                    return;
+
+                case 33:
                     switch (((JButton) o).getText()) {
                         case "Log out":
                             loginStart();
@@ -242,13 +289,48 @@ public class GUI extends JFrame implements ActionListener {
                             sendAlert("Unidentifiable button");
                             break;
                     }
-                }
-                return;
+                    return;
 
-            default:
-                sendAlert("Unidentifiable screen");
-                break;
+                default:
+                    sendAlert("Unidentifiable screen");
+                    break;
+            }
         }
+    }
+
+    private ArrayList<String> getInputStrings() {
+        ArrayList<String> strs = new ArrayList<String>();
+        for (JTextField i : input) {
+            String temp = i.getText();
+            if (temp == null) {
+                temp = " ";
+            }
+            strs.add(temp);
+        }
+        return strs;
+    }
+
+    private JPanel newConnectSettings() {
+        GridBagConstraints cServer = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 0;
+                weightx = 1.0;
+            }
+        }, cPort = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 1;
+                weightx = 1.0;
+            }
+        };
+        return new JPanel() {
+            {
+                setPreferredSize(new Dimension(420, 200));
+                add(newInput("Server", server), cServer);
+                add(newInput("Port", port), cPort);
+            }
+        };
     }
 
     private JPanel newHeader(String user) {
@@ -307,7 +389,6 @@ public class GUI extends JFrame implements ActionListener {
                 add(newImage(new Dimension(64, 64)), cImg);
                 add(newLabel(user), cUser);
                 add(newButton("Log out", new Dimension(108, 32)), cOut);
-                // setMaximumSize(new Dimension(280, 128));
                 setBorder(BorderFactory.createTitledBorder("Logged in as..."));
             }
         };
@@ -339,14 +420,14 @@ public class GUI extends JFrame implements ActionListener {
 
     // REF:
     // https://stackoverflow.com/questions/9417356/bufferedimage-resize
-    public static BufferedImage resize(BufferedImage img, int newW, int newH) { 
+    public static BufferedImage resize(BufferedImage img, int newW, int newH) {
         Image tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
         BufferedImage dimg = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB);
-    
+
         Graphics2D g2d = dimg.createGraphics();
         g2d.drawImage(tmp, 0, 0, null);
         g2d.dispose();
-    
+
         return dimg;
     }
 
@@ -380,6 +461,10 @@ public class GUI extends JFrame implements ActionListener {
     public void sendAlert(String msg) {
         timestamp = new SimpleDateFormat("HH:mm:ss").format(new Date());
         System.out.println("(!) [" + timestamp + "] " + msg + ".");
+        if (!noGUI) {
+            JOptionPane.showMessageDialog(this, "(!) [" + timestamp + "] " + msg + ".", title,
+                    JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     public void sendQuery(String msg) {
