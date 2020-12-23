@@ -19,7 +19,7 @@ public class Server {
             dis = new DataInputStream(s.getInputStream());
             gui.sendNotice("Server started successfully");
         } catch (Exception e) {
-            gui.sendError("Error while starting server: " + e.getMessage());
+            gui.sendAlert("Error while starting server: " + e.getMessage());
         }
     }
 
@@ -29,10 +29,10 @@ public class Server {
             try {
                 respond(Integer.parseInt(msg[0]), msg[1]);
             } catch (Exception e) {
-                gui.sendError("Error while resolving message: " + e.getMessage());
+                gui.sendAlert("Error while resolving message: " + e.getMessage());
             }
         } catch (Exception e) {
-            gui.sendError("Error while listening to client: " + e.getMessage());
+            gui.sendAlert("Error while listening to client: " + e.getMessage());
         }
     }
 
@@ -43,7 +43,7 @@ public class Server {
                 break;
 
             default:
-                gui.sendError("Unresolvable message: code " + msgCode + " » " + msg);
+                gui.sendAlert("Unresolvable message: code " + msgCode + " » " + msg);
                 break;
         }
     }
@@ -54,7 +54,7 @@ public class Server {
             ss.close();
             gui.sendNotice("Server closed");
         } catch (Exception e) {
-            gui.sendError("Error while closing server: " + e.getMessage());
+            gui.sendAlert("Error while closing server: " + e.getMessage());
         }
     }
 }

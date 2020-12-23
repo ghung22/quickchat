@@ -16,7 +16,7 @@ public class Client {
             dos = new DataOutputStream(s.getOutputStream());
             gui.sendNotice("Connection made successfully");
         } catch (Exception e) {
-            gui.sendError("Error while connecting to server: " + e.getMessage());
+            gui.sendAlert("Error while connecting to server: " + e.getMessage());
         }
     }
 
@@ -26,7 +26,7 @@ public class Client {
             dos.flush();
             dos.close();
         } catch (Exception e) {
-            gui.sendError("Error while sending message: " + e.getMessage());
+            gui.sendAlert("Error while sending message: " + e.getMessage());
         }
     }
     
@@ -36,7 +36,7 @@ public class Client {
             s.close();
             gui.sendNotice("Connection ended");
         } catch (Exception e) {
-            gui.sendError("Error while ending connection: " + e.getMessage());
+            gui.sendAlert("Error while ending connection: " + e.getMessage());
         }
     }
 }

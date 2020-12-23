@@ -2,9 +2,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -14,19 +14,25 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics2D;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.Image;
+import java.awt.GridBagConstraints;
+import java.awt.image.BufferedImage;
+import java.io.File;
 
+@SuppressWarnings("serial")
 public class GUI extends JFrame implements ActionListener {
     Boolean noGUI = false;
-    String timestamp;
+    String timestamp, title = "Quickchat Messenger";
+    Dimension winSize = new Dimension(800, 600);
     Integer screenID = 0;
     ArrayList<JTextField> input = new ArrayList<JTextField>();
-
-    // Integer paddingDefault = 20, marginDefault = 12;
 
     GUI() {
         this(false);
@@ -38,7 +44,7 @@ public class GUI extends JFrame implements ActionListener {
             sendLoading("Building GUI");
 
             // Create frame
-            setTitle("Quickchat");
+            setTitle(title);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             // Show Login menu
@@ -46,7 +52,8 @@ public class GUI extends JFrame implements ActionListener {
 
             // Show frame
             pack();
-            setSize(800, 600);
+            setSize(winSize);
+            setMinimumSize(winSize);
             setLocationRelativeTo(null);
             setVisible(true);
         }
@@ -59,44 +66,100 @@ public class GUI extends JFrame implements ActionListener {
 
     private void cleanup() {
         input.clear();
+        getContentPane().removeAll();
     }
 
     private void loginStart() {
         cleanup();
-
-        // Put elements into frame
-        add(newTitle(), BorderLayout.NORTH);
-        add(newFiller(), BorderLayout.WEST);
-        add(newLoginForm(), BorderLayout.CENTER);
-        add(newFiller(), BorderLayout.EAST);
+        sendNotice("Program started");
+        GridBagConstraints cTitle = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 0;
+                weightx = 1.0;
+            }
+        }, cForm = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 1;
+                weightx = 1.0;
+            }
+        };
+        JPanel loginPanel = new JPanel(new GridBagLayout()) {
+            {
+                add(newTitle(), cTitle);
+                add(newLoginForm(), cForm);
+            }
+        };
+        add(loginPanel);
         screenID = 76;
+        validate();
+    }
+
+    private void mainStart(String user) {
+        cleanup();
+        sendNotice("Logged in as " + user);
+        GridBagConstraints cHeader = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 0;
+                anchor = NORTH;
+                weightx = weighty = 1.0;
+            }
+        };
+        JPanel mainPanel = new JPanel(new GridBagLayout()) {
+            {
+                setPreferredSize(winSize);
+                add(newHeader(user), cHeader);
+            }
+        };
+        add(mainPanel);
+        screenID = 33;
+        validate();
     }
 
     private JPanel newTitle() {
-        JLabel title = new JLabel("Quickchat Messenger");
-        title.setFont(title.getFont().deriveFont(56.0f));
-        JPanel titlePanel = new JPanel();
-        titlePanel.add(title);
-        return titlePanel;
-    }
-
-    private JPanel newLoginForm() {// Create panel
-        JPanel formPanel = new JPanel() {
+        JLabel title = new JLabel(this.title) {
             {
-                setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-
-                // Put elements into panel
-                add(newFiller());
-                add(newInput("Username"));
-                add(newFiller());
-                add(newInput("Password", true));
-                add(newFiller());
-                add(newButton("Login"));
-                add(newFiller());
+                setFont(getFont().deriveFont(56.0f));
             }
         };
+        return new JPanel() {
+            {
+                add(title);
+            }
+        };
+    }
 
-        return formPanel;
+    private JPanel newLoginForm() {
+        GridBagConstraints cUser = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 0;
+                insets = new Insets(32, 0, 16, 0);
+                weightx = weighty = 1.0;
+            }
+        }, cPass = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 1;
+                insets = new Insets(16, 0, 32, 0);
+                weightx = weighty = 1.0;
+            }
+        }, cBtn = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 2;
+                weightx = weighty = 1.0;
+            }
+        };
+        return new JPanel(new GridBagLayout()) {
+            {
+                add(newInput("Username"), cUser);
+                add(newInput("Password", true), cPass);
+                add(newButton("Login"), cBtn);
+            }
+        };
     }
 
     private JPanel newInput(String str, Boolean hideText) {
@@ -116,41 +179,44 @@ public class GUI extends JFrame implements ActionListener {
         input.add(field);
 
         // Add field to titled panel
-        JPanel panel = new JPanel() {
+        GridBagConstraints c = new GridBagConstraints() {
             {
-                add(newFiller());
-                add(field);
-                add(newFiller());
+                insets = new Insets(16, 64, 16, 64);
+                weightx = weighty = 1.0;
+            }
+        };
+        return new JPanel(new GridBagLayout()) {
+            {
+                add(field, c);
                 setBorder(BorderFactory.createTitledBorder(str + ":"));
             }
         };
-        return panel;
     }
 
     private JPanel newInput(String str) {
         return newInput(str, false);
     }
 
-    private JPanel newButton(String str) {
+    private JPanel newButton(String str, Dimension size) {
         // Create button
         JButton button = new JButton(str) {
             {
-                setSize(128, 96);
+                setSize(size);
                 setMaximumSize(getSize());
             }
         };
         button.addActionListener(this);
 
         // Add button to panel
-        JPanel panel = new JPanel() {
+        return new JPanel() {
             {
-                setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-                add(newFiller());
                 add(button);
-                add(newFiller());
             }
         };
-        return panel;
+    }
+
+    private JPanel newButton(String str) {
+        return newButton(str, new Dimension(128, 96));
     }
 
     @Override
@@ -161,17 +227,144 @@ public class GUI extends JFrame implements ActionListener {
         }
         switch (screenID) {
             case 76:
-                sendNotice(strs.get(0) + ": " + strs.get(1));
-                break;
+                mainStart(strs.get(0));
+                return;
+
+            case 33:
+                Object o = e.getSource();
+                if (o instanceof JButton) {
+                    switch (((JButton) o).getText()) {
+                        case "Log out":
+                            loginStart();
+                            return;
+
+                        default:
+                            sendAlert("Unidentifiable button");
+                            break;
+                    }
+                }
+                return;
 
             default:
-                sendError("Unidentifiable screen");
+                sendAlert("Unidentifiable screen");
                 break;
         }
     }
 
-    private Box.Filler newFiller() {
-        return new Box.Filler(new Dimension(0, 0), new Dimension(128, 64), new Dimension(Short.MAX_VALUE, 640));
+    private JPanel newHeader(String user) {
+        GridBagConstraints cLabel = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 0;
+                insets = new Insets(0, 8, 0, 8);
+                anchor = WEST;
+                weightx = weighty = 1;
+            }
+        }, cInfo = new GridBagConstraints() {
+            {
+                gridx = 2;
+                gridy = 0;
+                anchor = EAST;
+                insets = new Insets(0, 8, 0, 8);
+                weightx = weighty = 1;
+            }
+        };
+        return new JPanel(new GridBagLayout()) {
+            {
+                setPreferredSize(new Dimension((int) winSize.getWidth(), 120));
+                add(newLabel("Welcome, ", 28.0f), cLabel);
+                add(newLoginInfo(user), cInfo);
+            }
+        };
+    }
+
+    private JPanel newLoginInfo(String user) {
+        GridBagConstraints cImg = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 0;
+                gridwidth = 1;
+                gridheight = 2;
+                insets = new Insets(8, 8, 8, 8);
+            }
+        }, cUser = new GridBagConstraints() {
+            {
+                gridx = 1;
+                gridy = 0;
+                anchor = LINE_START;
+                insets = new Insets(8, 0, 0, 8);
+            }
+        }, cOut = new GridBagConstraints() {
+            {
+                gridx = 1;
+                gridy = 1;
+                anchor = LINE_START;
+                insets = new Insets(8, 0, 0, 8);
+            }
+        };
+        return new JPanel(new GridBagLayout()) {
+            {
+                add(newImage(new Dimension(64, 64)), cImg);
+                add(newLabel(user), cUser);
+                add(newButton("Log out", new Dimension(108, 32)), cOut);
+                // setMaximumSize(new Dimension(280, 128));
+                setBorder(BorderFactory.createTitledBorder("Logged in as..."));
+            }
+        };
+    }
+
+    private JPanel newImage(Dimension size) {
+        // REF (Print image on GUI):
+        // https://stackoverflow.com/questions/8333802/displaying-an-image-in-java-swing
+        try {
+            BufferedImage bi = ImageIO.read(new File("Data/default-profile.png"));
+            JLabel img = new JLabel(new ImageIcon(resize(bi, 64, 64)));
+            JPanel panel = new JPanel() {
+                {
+                    add(img);
+                    setPreferredSize(size);
+                }
+            };
+            return panel;
+        } catch (Exception e) {
+            sendAlert("Error while creating login infobox: " + e.getMessage());
+            return new JPanel() {
+                {
+                    setPreferredSize(size);
+                    setBackground(Color.red);
+                }
+            };
+        }
+    }
+
+    // REF:
+    // https://stackoverflow.com/questions/9417356/bufferedimage-resize
+    public static BufferedImage resize(BufferedImage img, int newW, int newH) { 
+        Image tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+        BufferedImage dimg = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB);
+    
+        Graphics2D g2d = dimg.createGraphics();
+        g2d.drawImage(tmp, 0, 0, null);
+        g2d.dispose();
+    
+        return dimg;
+    }
+
+    private JPanel newLabel(String str, Float font_size) {
+        JLabel label = new JLabel(str) {
+            {
+                setFont(getFont().deriveFont(font_size));
+            }
+        };
+        return new JPanel() {
+            {
+                add(label);
+            }
+        };
+    }
+
+    private JPanel newLabel(String str) {
+        return newLabel(str, 16.0f);
     }
 
     public void sendLoading(String msg) {
@@ -184,7 +377,7 @@ public class GUI extends JFrame implements ActionListener {
         System.out.println("(i) [" + timestamp + "] " + msg + ".");
     }
 
-    public void sendError(String msg) {
+    public void sendAlert(String msg) {
         timestamp = new SimpleDateFormat("HH:mm:ss").format(new Date());
         System.out.println("(!) [" + timestamp + "] " + msg + ".");
     }
