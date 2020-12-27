@@ -15,10 +15,10 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.StyleSheet;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -31,7 +31,6 @@ import java.awt.Image;
 import java.awt.GridBagConstraints;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 
 @SuppressWarnings("serial")
 public class GUI extends JFrame implements ActionListener {
@@ -51,6 +50,7 @@ public class GUI extends JFrame implements ActionListener {
         // Create frame
         setTitle(title);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setResizable(false);
 
         // Show menu (Login for clients, skip to Main Menu for server admin)
         if (mode == "client") {
@@ -308,6 +308,8 @@ public class GUI extends JFrame implements ActionListener {
 
                         case "Send":
                             updateChatbox(strs.get(0));
+                            input.get(0).setText("");
+                            input.get(0).grabFocus();;
                             return;
 
                         default:
@@ -379,7 +381,7 @@ public class GUI extends JFrame implements ActionListener {
         return new JPanel(new GridBagLayout()) {
             {
                 setPreferredSize(new Dimension((int) winSize.getWidth(), 120));
-                add(newLabel("Welcome, ", 28.0f), cLabel);
+                add(newLabel("Welcome, " + user, 28.0f), cLabel);
                 add(newLoginInfo(user), cInfo);
             }
         };
@@ -500,12 +502,14 @@ public class GUI extends JFrame implements ActionListener {
         JPanel text = newInput("Your message");
         text.setBorder(null);
         HTMLEditorKit editorKit = new HTMLEditorKit();
+        StyleSheet sh = editorKit.getStyleSheet();
+        sh.addRule("p {line-height: 100%; margin: 100%;}");
         chatbox = new JEditorPane() {
             {
                 setEditorKit(editorKit);
                 setEditable(false);
                 setContentType("text/html");
-                setText("<html><body id='body'></body></html>");
+                setText("<html><body id='body'><p><b>" + user + "</b> entered the chat. Please be civilized.</p></body></html>");
                 // setSize(new Dimension((int) winSize.getWidth() - 64, (int)
                 // winSize.getHeight() - 256));
                 setPreferredSize(new Dimension((int) winSize.getWidth() - 64, (int) winSize.getHeight() - 256));
@@ -548,11 +552,11 @@ public class GUI extends JFrame implements ActionListener {
     }
 
     public void updateChatbox(String msg) {
-        // TODO: Update chat box
         HTMLDocument content = (HTMLDocument) chatbox.getDocument();
         Element ele = content.getElement("body");
         try {
-            content.insertBeforeEnd(ele, "<p>" + msg + "</p>");
+            content.insertBeforeEnd(ele,
+                    "<p><span style='font-size: 75%'>[" + getTimestamp() + "]</span> <b>" + user + "</b>: " + msg + "</p>");
         } catch (Exception e) {
             sendAlert("Error while updating Chatbox: " + e.getMessage());
         }
