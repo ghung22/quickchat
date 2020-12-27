@@ -20,10 +20,11 @@ https://web.mit.edu/6.005/www/sp14/psets/ps4/java-6-tutorial/components.html
       +  427: ReQuesT
       +  356: MeSsaGe
       +  477: ATenTion
+      +  103: InfOMation
    -  Screen IDs:
       +  0:  No GUI
       +  76: LoGin
-      +  56: SiGn up
+      +  56: SiGnup
       +  57: SetTings
       +  33: Main Menu
       +  75: Talk Screen

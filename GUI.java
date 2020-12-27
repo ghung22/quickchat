@@ -6,6 +6,7 @@ import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -14,6 +15,10 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Element;
+import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.HTMLEditorKit;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -26,43 +31,44 @@ import java.awt.Image;
 import java.awt.GridBagConstraints;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 
 @SuppressWarnings("serial")
 public class GUI extends JFrame implements ActionListener {
-    Boolean noGUI = false;
-    String timestamp, title = "Quickchat Messenger", server = "localhost", port = "7044";
+    String mode, title = "Quickchat Messenger";
     Dimension winSize = new Dimension(800, 600);
     Integer screenID = 0;
     ArrayList<JTextField> input = new ArrayList<JTextField>();
+    JEditorPane chatbox;
 
-    GUI() {
-        this(false);
-    }
+    protected String server = "localhost", port = "7044", user, pass;
+    protected Boolean connectStarted = false;
 
-    GUI(Boolean noGUI) {
-        this.noGUI = noGUI;
-        if (!noGUI) {
-            sendLoading("Building GUI");
+    GUI(String mode) {
+        this.mode = mode;
+        sendLoading("Initializing GUI");
 
-            // Create frame
-            setTitle(title);
-            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-            // Show Login menu
-            loginStart();
-
-            // Show frame
-            pack();
-            setSize(winSize);
-            setMinimumSize(winSize);
-            setLocationRelativeTo(null);
-            setVisible(true);
-        }
-    }
-
-    GUI(String title) {
-        this(false);
+        // Create frame
         setTitle(title);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Show menu (Login for clients, skip to Main Menu for server admin)
+        if (mode == "client") {
+            loginStart();
+        } else if (mode == "server") {
+            connectStarted = true;
+            user = "admin";
+            mainStart();
+        }
+
+        // Show frame
+        pack();
+        setSize(winSize);
+        setMinimumSize(winSize);
+        setLocationRelativeTo(null);
+        setVisible(true);
+        sendNotice("GUI started for " + mode);
+
     }
 
     private void cleanup() {
@@ -70,9 +76,8 @@ public class GUI extends JFrame implements ActionListener {
         getContentPane().removeAll();
     }
 
-    private void loginStart() {
+    protected void loginStart() {
         cleanup();
-        sendNotice("Program started");
         GridBagConstraints cTitle = new GridBagConstraints() {
             {
                 gridx = 0;
@@ -107,7 +112,7 @@ public class GUI extends JFrame implements ActionListener {
         validate();
     }
 
-    private void mainStart(String user) {
+    protected void mainStart() {
         cleanup();
         sendNotice("Logged in as " + user);
         GridBagConstraints cHeader = new GridBagConstraints() {
@@ -117,11 +122,19 @@ public class GUI extends JFrame implements ActionListener {
                 anchor = NORTH;
                 weightx = weighty = 1.0;
             }
+        }, cChatbox = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 1;
+                anchor = NORTH;
+                weightx = weighty = 1.0;
+            }
         };
         JPanel mainPanel = new JPanel(new GridBagLayout()) {
             {
                 setPreferredSize(winSize);
                 add(newHeader(user), cHeader);
+                add(newChatbox(), cChatbox);
             }
         };
         add(mainPanel);
@@ -256,7 +269,9 @@ public class GUI extends JFrame implements ActionListener {
                 case 76:
                     switch (((JButton) o).getText()) {
                         case "Login":
-                            mainStart(strs.get(0));
+                            user = strs.get(0);
+                            pass = strs.get(1);
+                            connectStarted = true;
                             return;
 
                         case "Connection Settings":
@@ -282,7 +297,17 @@ public class GUI extends JFrame implements ActionListener {
                 case 33:
                     switch (((JButton) o).getText()) {
                         case "Log out":
+                            connectStarted = false;
                             loginStart();
+                            return;
+
+                        case "Close server":
+                            connectStarted = false;
+                            dispose();
+                            return;
+
+                        case "Send":
+                            updateChatbox(strs.get(0));
                             return;
 
                         default:
@@ -384,11 +409,12 @@ public class GUI extends JFrame implements ActionListener {
                 insets = new Insets(8, 0, 0, 8);
             }
         };
+
         return new JPanel(new GridBagLayout()) {
             {
                 add(newImage(new Dimension(64, 64)), cImg);
                 add(newLabel(user), cUser);
-                add(newButton("Log out", new Dimension(108, 32)), cOut);
+                add(newButton((user != "admin") ? "Log out" : "Close server", new Dimension(108, 32)), cOut);
                 setBorder(BorderFactory.createTitledBorder("Logged in as..."));
             }
         };
@@ -448,27 +474,88 @@ public class GUI extends JFrame implements ActionListener {
         return newLabel(str, 16.0f);
     }
 
+    private JPanel newChatbox() {
+        GridBagConstraints cText = new GridBagConstraints() {
+            {
+                gridx = 1;
+                gridy = 0;
+                gridwidth = 7;
+                anchor = WEST;
+                weightx = 1.0;
+            }
+        }, cButton = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 0;
+                anchor = WEST;
+            }
+        }, cChatbox = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 1;
+                gridwidth = 8;
+                weightx = weighty = 1.0;
+            }
+        };
+        JPanel text = newInput("Your message");
+        text.setBorder(null);
+        HTMLEditorKit editorKit = new HTMLEditorKit();
+        chatbox = new JEditorPane() {
+            {
+                setEditorKit(editorKit);
+                setEditable(false);
+                setContentType("text/html");
+                setText("<html><body id='body'></body></html>");
+                // setSize(new Dimension((int) winSize.getWidth() - 64, (int)
+                // winSize.getHeight() - 256));
+                setPreferredSize(new Dimension((int) winSize.getWidth() - 64, (int) winSize.getHeight() - 256));
+                setMinimumSize(new Dimension((int) winSize.getWidth() - 64, (int) winSize.getHeight() - 256));
+                // setMaximumSize(new Dimension((int) winSize.getWidth() - 64, (int)
+                // winSize.getHeight() - 256));
+            }
+        };
+        return new JPanel(new GridBagLayout()) {
+            {
+                add(text, cText);
+                add(newButton("Send"), cButton);
+                add(chatbox, cChatbox);
+            }
+        };
+    }
+
+    public String getTimestamp() {
+        return new SimpleDateFormat("HH:mm:ss").format(new Date());
+    }
+
     public void sendLoading(String msg) {
-        timestamp = new SimpleDateFormat("HH:mm:ss").format(new Date());
-        System.out.println("(@) [" + timestamp + "] " + msg + "...");
+        System.out.println("(@) [" + getTimestamp() + "] " + msg + "...");
     }
 
     public void sendNotice(String msg) {
-        timestamp = new SimpleDateFormat("HH:mm:ss").format(new Date());
-        System.out.println("(i) [" + timestamp + "] " + msg + ".");
+        System.out.println("(i) [" + getTimestamp() + "] " + msg + ".");
     }
 
     public void sendAlert(String msg) {
-        timestamp = new SimpleDateFormat("HH:mm:ss").format(new Date());
-        System.out.println("(!) [" + timestamp + "] " + msg + ".");
-        if (!noGUI) {
-            JOptionPane.showMessageDialog(this, "(!) [" + timestamp + "] " + msg + ".", title,
+        System.out.println("(!) [" + getTimestamp() + "] " + msg + ".");
+        if (isShowing()) {
+            JOptionPane.showMessageDialog(this, "(!) [" + getTimestamp() + "] " + msg + ".", "Warning",
                     JOptionPane.WARNING_MESSAGE);
         }
     }
 
     public void sendQuery(String msg) {
-        timestamp = new SimpleDateFormat("HH:mm:ss").format(new Date());
-        System.out.println("(?) [" + timestamp + "] " + msg + ".");
+        System.out.println("(?) [" + getTimestamp() + "] " + msg + ".");
+    }
+
+    public void updateChatbox(String msg) {
+        // TODO: Update chat box
+        HTMLDocument content = (HTMLDocument) chatbox.getDocument();
+        Element ele = content.getElement("body");
+        try {
+            content.insertBeforeEnd(ele, "<p>" + msg + "</p>");
+        } catch (Exception e) {
+            sendAlert("Error while updating Chatbox: " + e.getMessage());
+        }
+        chatbox.setDocument(content);
     }
 }
