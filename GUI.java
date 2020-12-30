@@ -43,7 +43,7 @@ public class GUI extends JFrame implements ActionListener {
     JEditorPane chatbox;
 
     protected String server = "localhost", port = "7044", user, pass, msgStr;
-    protected Boolean connectStarted = false;
+    protected Boolean connectStarted = false, authStarted = false, registerStarted = false;
     protected DataInputStream dis;
     protected DataOutputStream dos;
 
@@ -81,6 +81,7 @@ public class GUI extends JFrame implements ActionListener {
     }
 
     protected void loginStart() {
+        // TODO: Register account (to CSV)
         cleanup();
         GridBagConstraints cTitle = new GridBagConstraints() {
             {
@@ -164,6 +165,7 @@ public class GUI extends JFrame implements ActionListener {
             {
                 gridx = 0;
                 gridy = 0;
+                gridwidth = 2;
                 insets = new Insets(32, 0, 16, 0);
                 weightx = weighty = 1.0;
             }
@@ -171,13 +173,22 @@ public class GUI extends JFrame implements ActionListener {
             {
                 gridx = 0;
                 gridy = 1;
+                gridwidth = 2;
                 insets = new Insets(16, 0, 32, 0);
                 weightx = weighty = 1.0;
             }
-        }, cBtn = new GridBagConstraints() {
+        }, cBtnLogin = new GridBagConstraints() {
             {
                 gridx = 0;
                 gridy = 2;
+                gridwidth = 1;
+                weightx = weighty = 1.0;
+            }
+        }, cBtnRegister = new GridBagConstraints() {
+            {
+                gridx = 1;
+                gridy = 2;
+                gridwidth = 1;
                 weightx = weighty = 1.0;
             }
         };
@@ -185,7 +196,8 @@ public class GUI extends JFrame implements ActionListener {
             {
                 add(newInput("Username"), cUser);
                 add(newInput("Password", true), cPass);
-                add(newButton("Login"), cBtn);
+                add(newButton("Login"), cBtnLogin);
+                add(newButton("Register"), cBtnRegister);
             }
         };
     }
@@ -275,12 +287,24 @@ public class GUI extends JFrame implements ActionListener {
                         case "Login":
                             user = strs.get(0);
                             pass = strs.get(1);
-                            connectStarted = true;
+                            authStarted = true;
+                            return;
+
+                        case "Register":
+                            JPanel dialogReg = newRegister();
+                            if (JOptionPane.showConfirmDialog(this, dialogReg, "Register Account",
+                                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+                                user = input.get(2).getText();
+                                pass = input.get(3).getText();
+                                registerStarted = true;
+                            }
+                            input.remove(3);
+                            input.remove(2);
                             return;
 
                         case "Connection Settings":
-                            JPanel dialog = newConnectSettings();
-                            if (JOptionPane.showConfirmDialog(this, dialog, "Connection Settings",
+                            JPanel dialogConSet = newConnectSettings();
+                            if (JOptionPane.showConfirmDialog(this, dialogConSet, "Connection Settings",
                                     JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
                                 server = input.get(2).getText();
                                 port = input.get(3).getText();
@@ -343,6 +367,29 @@ public class GUI extends JFrame implements ActionListener {
             strs.add(temp);
         }
         return strs;
+    }
+
+    private JPanel newRegister() {
+        GridBagConstraints cUser = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 0;
+                weightx = 1.0;
+            }
+        }, cPass = new GridBagConstraints() {
+            {
+                gridx = 0;
+                gridy = 1;
+                weightx = 1.0;
+            }
+        };
+        return new JPanel() {
+            {
+                setPreferredSize(new Dimension(420, 200));
+                add(newInput("Username"), cUser);
+                add(newInput("Password", true), cPass);
+            }
+        };
     }
 
     private JPanel newConnectSettings() {

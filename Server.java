@@ -12,7 +12,7 @@ public class Server extends GUI {
     String ip = "localhost";
     Integer port = 7044;
 
-    TreeMap<String, String> client_info = new TreeMap<String, String>();
+    TreeMap<String, String> clientInfo = new TreeMap<String, String>();
 
     public Server() {
         super("server");
@@ -70,20 +70,20 @@ public class Server extends GUI {
     }
 
     public void postConnectedStatus() {
-        client_info = new TreeMap<String, String>();
+        clientInfo = new TreeMap<String, String>();
         sendNotice("Connected to a client");
 
         // Wait until username is received and send entering chat room message
-        while (!client_info.containsKey("username")) {
+        while (!clientInfo.containsKey("username")) {
             continue;
         }
-        String str = client_info.get("username") + " entered the chat room.";
+        String str = clientInfo.get("username") + " entered the chat room.";
         updateChatbox(ip + ":" + port, str);
         try {
             dos.writeUTF("427»Update chatbox»" + ip + ":" + port + "»" + str);
         } catch (Exception e) {
             sendAlert("Error while send update request to client: " + e.getMessage());
-            client_info.clear();
+            endConnection();
         }
     }
 
@@ -96,9 +96,9 @@ public class Server extends GUI {
                 sendAlert("Error while resolving message: " + e.getMessage() + ". Received message: " + msg);
             }
         } catch (Exception e) {
-            if (client_info != null) {
+            if (clientInfo != null) {
                 sendAlert("Error while listening to client: " + e.getMessage());
-                client_info.clear();
+                endConnection();
             }
         }
     }
@@ -113,22 +113,22 @@ public class Server extends GUI {
                     dos.writeUTF("427»Update chatbox»" + submsg[0] + "»" + submsg[1]);
                 } catch (Exception e) {
                     sendAlert("Error while send update request to client: " + e.getMessage());
-                    client_info.clear();
+                    endConnection();
                 }
                 break;
 
             case 103:
-                if (!client_info.containsKey(submsg[0])) {
-                    client_info.put(submsg[0], submsg[1]);
+                if (!clientInfo.containsKey(submsg[0])) {
+                    clientInfo.put(submsg[0], submsg[1]);
                 } else {
-                    client_info.replace(submsg[0], submsg[1]);
+                    clientInfo.replace(submsg[0], submsg[1]);
                 }
                 break;
 
             case 427:
                 switch (submsg[0]) {
                     case "Close client":
-                        client_info.clear();
+                        endConnection();
                         break;
 
                     case "Update chatbox":
@@ -148,6 +148,17 @@ public class Server extends GUI {
         }
     }
 
+    public void endConnection() {
+        clientInfo.clear();
+        connectStarted = false;
+        try {
+            dos.writeUTF("427»Close client");
+            s.close();
+            sendNotice("Connection ended");
+        } catch (Exception e) {
+        }
+    }
+
     public void close() {
         // Send closing notice to clients
         sendLoading("Closing server");
@@ -155,12 +166,12 @@ public class Server extends GUI {
             dos.writeUTF("427»Close server");
         } catch (Exception e) {
             sendAlert("Error while send close request to client: " + e.getMessage());
-            client_info.clear();
+            clientInfo.clear();
         }
 
         // Close server
         try {
-            client_info.clear();
+            clientInfo.clear();
             ss.close();
             sendNotice("Server closed");
             dispose();

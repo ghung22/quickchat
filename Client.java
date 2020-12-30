@@ -1,11 +1,17 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.lang.Runnable;
 import java.net.Socket;
+import java.util.Scanner;
 
 @SuppressWarnings("serial")
 public class Client extends GUI {
     Socket s;
+
+    Integer failsafeFlag = 5; // End client after 5 failed attemps
 
     Client() {
         super("client");
@@ -13,9 +19,23 @@ public class Client extends GUI {
 
     public void connect() {
         // Conect to specified server (if logged in successfully)
-        if (!connectStarted) {
+        if (registerStarted) {
+            register();
+            registerStarted = false;
+        }
+        if (!authStarted) {
             return;
         }
+        authStarted = false;
+        if (!authenticate()) {
+            sendAlert("Error while authenticating client: Wrong username or password.");
+            if (--failsafeFlag <= 0) {
+                sendAlert("Critical: Too many failed attempts, closing client.");
+                dispose();
+            }
+            return;
+        }
+        connectStarted = true;
         String ip = server;
         Integer p = Integer.parseInt(port);
         sendLoading("Connecting server at " + ip + ":" + p);
@@ -46,7 +66,74 @@ public class Client extends GUI {
         }
     }
 
-    public void sendInfoToServer() throws Exception {
+    private void register() {
+        if (!authenticate(true)) {
+            File file = new File("Data/user-accounts.csv");
+            FileWriter fw = null;
+            try {
+                if (file.createNewFile()) {
+                    fw = new FileWriter(file);
+                    fw.write("Username,Password,Profile\n");
+                    if (fw != null) {
+                        fw.close();
+                    }
+                }
+                fw = new FileWriter(file, true);
+                fw.write(user + "," + pass + "," + "Data/default-profile.png" + "\n");
+                if (fw != null) {
+                    fw.close();
+                }
+            } catch (Exception e) {
+                sendAlert("Error while registering client: " + e.getMessage());
+            }
+        } else {
+            sendAlert("Error while registering client: Username exists.");
+        }
+    }
+
+    private Boolean authenticate(Boolean checkUserOnly) {
+        Boolean foundUser = false, correctPassword = false;
+        File file = new File("Data/user-accounts.csv");
+        if (!file.exists()) {
+            sendAlert("Error while authenticating client: Database not availible.");
+        }
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            Scanner s = new Scanner(fis, "UTF-8");
+            if (s.hasNextLine()) {
+                // Skip columns name
+                s.nextLine();
+            }
+            while (s.hasNextLine()) {
+                String line = s.nextLine();
+                String[] sec = line.split(",", 3);
+                if (sec[0].equals(user)) {
+                    foundUser = true;
+                    if (sec[1].equals(pass)) {
+                        correctPassword = true;
+                    } else {
+                        break;
+                    }
+                    break;
+                }
+            }
+            if (fis != null) {
+                fis.close();
+            }
+            if (s != null) {
+                s.close();
+            }
+        } catch (Exception e) {
+            sendAlert("Error while authenticating client: " + e.getMessage());
+        }
+        return (foundUser && correctPassword) || (checkUserOnly && foundUser);
+    }
+
+    private Boolean authenticate() {
+        return authenticate(false);
+    }
+
+    private void sendInfoToServer() throws Exception {
         dos.writeUTF("103»username»" + user);
         dos.writeUTF("103»password»" + pass);
     }
@@ -85,10 +172,6 @@ public class Client extends GUI {
         String[] subsubmsg;
         switch (msgCode) {
             case 356:
-                // Hightlisht admin message
-                if (submsg[0] == "admin") {
-                    submsg[0] = "<span style='font-color: red;'>admin</span>";
-                }
                 updateChatbox(submsg[0], submsg[1]);
                 break;
 
@@ -99,6 +182,11 @@ public class Client extends GUI {
                 switch (submsg[0]) {
                     case "Close server":
                         sendNotice("Server closed");
+                        close();
+                        break;
+
+                    case "Close client":
+                        sendNotice("Received close request.");
                         close();
                         break;
 
