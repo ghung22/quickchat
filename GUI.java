@@ -57,9 +57,9 @@ public class GUI extends JFrame implements ActionListener {
         setResizable(false);
 
         // Show menu (Login for clients, skip to Main Menu for server admin)
-        if (mode == "client") {
+        if (mode.equals("client")) {
             loginStart();
-        } else if (mode == "server") {
+        } else if (mode.equals("server")) {
             connectStarted = true;
             user = "ADMIN";
             mainStart();

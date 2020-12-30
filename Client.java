@@ -28,9 +28,9 @@ public class Client extends GUI {
         }
         authStarted = false;
         if (!authenticate()) {
-            sendAlert("Error while authenticating client: Wrong username or password.");
+            sendAlert("Error while authenticating client: Wrong username or password");
             if (--failsafeFlag <= 0) {
-                sendAlert("Critical: Too many failed attempts, closing client.");
+                sendAlert("Critical: Too many failed attempts, closing client");
                 dispose();
             }
             return;
@@ -67,7 +67,11 @@ public class Client extends GUI {
     }
 
     private void register() {
-        if (!authenticate(true)) {
+        if (user.equals("ADMIN")) {
+            sendAlert("Error while registering client: Username '" + user + "' is reserved");
+            return;
+        }
+        if (!authenticate(true)) {   
             File file = new File("Data/user-accounts.csv");
             FileWriter fw = null;
             try {
@@ -87,7 +91,7 @@ public class Client extends GUI {
                 sendAlert("Error while registering client: " + e.getMessage());
             }
         } else {
-            sendAlert("Error while registering client: Username exists.");
+            sendAlert("Error while registering client: Username exists");
         }
     }
 
@@ -95,7 +99,7 @@ public class Client extends GUI {
         Boolean foundUser = false, correctPassword = false;
         File file = new File("Data/user-accounts.csv");
         if (!file.exists()) {
-            sendAlert("Error while authenticating client: Database not availible.");
+            sendAlert("Error while authenticating client: Database not availible");
         }
         try {
             FileInputStream fis = new FileInputStream(file);
@@ -138,19 +142,6 @@ public class Client extends GUI {
         dos.writeUTF("103»password»" + pass);
     }
 
-    public void speak() {
-        if (msgStr != "") {
-            try {
-                dos.writeUTF("356»" + msgStr);
-                msgStr = "";
-                dos.flush();
-                dos.close();
-            } catch (Exception e) {
-                sendAlert("Error while sending message: " + e.getMessage());
-            }
-        }
-    }
-
     public void listen() {
         try {
             String[] msg = dis.readUTF().split("»", 2);
@@ -186,7 +177,7 @@ public class Client extends GUI {
                         break;
 
                     case "Close client":
-                        sendNotice("Received close request.");
+                        sendNotice("Received close request");
                         close();
                         break;
 
