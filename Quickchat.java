@@ -1,7 +1,7 @@
 public class Quickchat {
     public static void main(String[] args) {
         Client c = new Client();
-        
+
         // Handle login screen
         while (c.isShowing()) {
             if (c.screenID == 76) {

@@ -30,6 +30,8 @@ import java.awt.Insets;
 import java.awt.Image;
 import java.awt.GridBagConstraints;
 import java.awt.image.BufferedImage;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 
 @SuppressWarnings("serial")
@@ -40,8 +42,10 @@ public class GUI extends JFrame implements ActionListener {
     ArrayList<JTextField> input = new ArrayList<JTextField>();
     JEditorPane chatbox;
 
-    protected String server = "localhost", port = "7044", user, pass;
+    protected String server = "localhost", port = "7044", user, pass, msgStr;
     protected Boolean connectStarted = false;
+    protected DataInputStream dis;
+    protected DataOutputStream dos;
 
     GUI(String mode) {
         this.mode = mode;
@@ -57,7 +61,7 @@ public class GUI extends JFrame implements ActionListener {
             loginStart();
         } else if (mode == "server") {
             connectStarted = true;
-            user = "admin";
+            user = "ADMIN";
             mainStart();
         }
 
@@ -303,13 +307,17 @@ public class GUI extends JFrame implements ActionListener {
 
                         case "Close server":
                             connectStarted = false;
-                            dispose();
                             return;
 
                         case "Send":
-                            updateChatbox(strs.get(0));
+                            try {
+                                dos.writeUTF("356»" + user + "»" + strs.get(0));
+                            } catch (Exception ex) {
+                                sendAlert("Error while sending text: " + ex.getMessage());
+                            }
                             input.get(0).setText("");
-                            input.get(0).grabFocus();;
+                            input.get(0).grabFocus();
+                            ;
                             return;
 
                         default:
@@ -509,13 +517,9 @@ public class GUI extends JFrame implements ActionListener {
                 setEditorKit(editorKit);
                 setEditable(false);
                 setContentType("text/html");
-                setText("<html><body id='body'><p><b>" + user + "</b> entered the chat. Please be civilized.</p></body></html>");
-                // setSize(new Dimension((int) winSize.getWidth() - 64, (int)
-                // winSize.getHeight() - 256));
+                setText("<html><body id='body'></body></html>");
                 setPreferredSize(new Dimension((int) winSize.getWidth() - 64, (int) winSize.getHeight() - 256));
                 setMinimumSize(new Dimension((int) winSize.getWidth() - 64, (int) winSize.getHeight() - 256));
-                // setMaximumSize(new Dimension((int) winSize.getWidth() - 64, (int)
-                // winSize.getHeight() - 256));
             }
         };
         return new JPanel(new GridBagLayout()) {
@@ -551,15 +555,16 @@ public class GUI extends JFrame implements ActionListener {
         System.out.println("(?) [" + getTimestamp() + "] " + msg + ".");
     }
 
-    public void updateChatbox(String msg) {
+    public void updateChatbox(String u, String msg) {
         HTMLDocument content = (HTMLDocument) chatbox.getDocument();
         Element ele = content.getElement("body");
         try {
-            content.insertBeforeEnd(ele,
-                    "<p><span style='font-size: 75%'>[" + getTimestamp() + "]</span> <b>" + user + "</b>: " + msg + "</p>");
+            content.insertBeforeEnd(ele, "<p><span style='font-size: 75%'>[" + getTimestamp() + "]</span> <b>" + u
+                    + "</b>: " + msg + "</p>");
         } catch (Exception e) {
             sendAlert("Error while updating Chatbox: " + e.getMessage());
         }
         chatbox.setDocument(content);
+        System.out.println("(>) [" + getTimestamp() + "] " + "(" + u + "): " + msg);
     }
 }
