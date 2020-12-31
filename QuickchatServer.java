@@ -4,6 +4,5 @@ public class QuickchatServer {
         s.launch();
         // TODO: while loop in both client and server (error while listening to
         // server/client)
-        // TODO: Server Close server button not working
     }
 }

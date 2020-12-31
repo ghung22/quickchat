@@ -3,16 +3,22 @@ import java.io.DataOutputStream;
 import java.lang.Runnable;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.TreeMap;
 
 @SuppressWarnings("serial")
 public class Server extends GUI {
     ServerSocket ss;
-    Socket s;
     String ip = "localhost";
     Integer port = 7044;
 
+    Socket s; // TODO: Multiple clients
     TreeMap<String, String> clientInfo = new TreeMap<String, String>();
+
+    // ArrayList<Socket> s = new ArrayList<Socket>();
+    // ArrayList<TreeMap<String, String>> clientInfo = new ArrayList<TreeMap<String,
+    // String>>();
+    // TreeMap<String, Integer> clientList = new TreeMap<String, Integer>();
 
     public Server() {
         super("server");
@@ -27,6 +33,14 @@ public class Server extends GUI {
             sendAlert("Error while starting server: " + e.getMessage());
         }
 
+        // Check if connection up and window showing
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                checkConnection();
+            }
+        }, "Check connection").start();
+
         // Accept connections in a thread (if GUI is still showing)
         sendNotice("Server started successfully");
         updateChatbox(ip + ":" + port, "Server started successfully");
@@ -36,26 +50,38 @@ public class Server extends GUI {
                 while (isShowing()) {
                     accept();
                 }
-
-                // End server after stopping accepting connections
-                close();
             }
         }, "Accept").start();
     }
 
-    public void accept() {
+    private void checkConnection() {
+        while (true) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            if (!connectStarted || !isShowing()) {
+                break;
+            }
+        }
+        close();
+    }
+
+    private void accept() {
         try {
             s = ss.accept();
             dis = new DataInputStream(s.getInputStream());
             dos = new DataOutputStream(s.getOutputStream());
 
             // Connect and listen to a new client in a thread (If exist client info)
-            new Thread(new Runnable(){
+            new Thread(new Runnable() {
                 @Override
                 public void run() {
                     postConnectedStatus();
                 }
-            }, "Post Connected").start();;
+            }, "Post Connected").start();
+            ;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -65,11 +91,13 @@ public class Server extends GUI {
                 }
             }, "Listen").start();
         } catch (Exception e) {
-            sendAlert("Error while running server: " + e.getMessage());
+            if (!e.getMessage().contains("closed")) {
+                sendAlert("Error while running server: " + e.getMessage());
+            }
         }
     }
 
-    public void postConnectedStatus() {
+    private void postConnectedStatus() {
         clientInfo = new TreeMap<String, String>();
         sendNotice("Connected to a client");
 
@@ -87,7 +115,7 @@ public class Server extends GUI {
         }
     }
 
-    public void listen() {
+    private void listen() {
         try {
             String[] msg = dis.readUTF().split("»", 2);
             try {
@@ -165,8 +193,10 @@ public class Server extends GUI {
         try {
             dos.writeUTF("427»Close server");
         } catch (Exception e) {
-            sendAlert("Error while send close request to client: " + e.getMessage());
-            clientInfo.clear();
+            if (!clientInfo.isEmpty()) {
+                sendAlert("Error while send close request to client: " + e.getMessage());
+                clientInfo.clear();
+            }
         }
 
         // Close server

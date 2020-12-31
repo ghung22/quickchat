@@ -81,7 +81,6 @@ public class GUI extends JFrame implements ActionListener {
     }
 
     protected void loginStart() {
-        // TODO: Register account (to CSV)
         cleanup();
         GridBagConstraints cTitle = new GridBagConstraints() {
             {
@@ -337,11 +336,16 @@ public class GUI extends JFrame implements ActionListener {
                             try {
                                 dos.writeUTF("356»" + user + "»" + strs.get(0));
                             } catch (Exception ex) {
-                                sendAlert("Error while sending text: " + ex.getMessage());
+                                if (dos != null) {
+                                    sendAlert("Error while sending text: " + ex.getMessage());
+                                }
+                            } finally {
+                                if (user == "ADMIN") {
+                                    updateChatbox(user, strs.get(0));
+                                }
+                                input.get(0).setText("");
+                                input.get(0).grabFocus();
                             }
-                            input.get(0).setText("");
-                            input.get(0).grabFocus();
-                            ;
                             return;
 
                         default:
@@ -471,7 +475,7 @@ public class GUI extends JFrame implements ActionListener {
             {
                 add(newImage(new Dimension(64, 64)), cImg);
                 add(newLabel(user), cUser);
-                add(newButton((user != "admin") ? "Log out" : "Close server", new Dimension(108, 32)), cOut);
+                add(newButton((user != "ADMIN") ? "Log out" : "Close server", new Dimension(108, 32)), cOut);
                 setBorder(BorderFactory.createTitledBorder("Logged in as..."));
             }
         };
