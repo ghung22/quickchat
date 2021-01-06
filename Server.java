@@ -3,7 +3,6 @@ import java.io.DataOutputStream;
 import java.lang.Runnable;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.TreeMap;
 
 @SuppressWarnings("serial")
@@ -85,7 +84,7 @@ public class Server extends GUI {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    while (isShowing()) {
+                    while (isShowing() && !s.isClosed()) {
                         listen();
                     }
                 }
@@ -178,7 +177,6 @@ public class Server extends GUI {
 
     public void endConnection() {
         clientInfo.clear();
-        connectStarted = false;
         try {
             dos.writeUTF("427»Close client");
             s.close();

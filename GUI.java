@@ -36,13 +36,17 @@ import java.io.File;
 
 @SuppressWarnings("serial")
 public class GUI extends JFrame implements ActionListener {
-    String mode, title = "Quickchat Messenger";
-    Dimension winSize = new Dimension(800, 600);
+    final String defaultTitle = "Quickchat Messenger", defaultServer = "localhost", defaultPort = "7044",
+            defaultUser = "ANONYMOUS";
+    final Dimension defaultSize = new Dimension(800, 600);
+
+    String mode, title = defaultTitle;
+    Dimension winSize = defaultSize;
     Integer screenID = 0;
     ArrayList<JTextField> input = new ArrayList<JTextField>();
     JEditorPane chatbox;
 
-    protected String server = "localhost", port = "7044", user, pass, msgStr;
+    protected String server = defaultServer, port = defaultPort, user = defaultUser, pass, msgStr;
     protected Boolean connectStarted = false, authStarted = false, registerStarted = false;
     protected DataInputStream dis;
     protected DataOutputStream dos;
@@ -325,7 +329,8 @@ public class GUI extends JFrame implements ActionListener {
                     switch (((JButton) o).getText()) {
                         case "Log out":
                             connectStarted = false;
-                            loginStart();
+                            user = defaultUser;
+                            pass = null;
                             return;
 
                         case "Close server":
@@ -587,15 +592,15 @@ public class GUI extends JFrame implements ActionListener {
     }
 
     public void sendLoading(String msg) {
-        System.out.println("(@) [" + getTimestamp() + "] " + msg + "...");
+        System.out.println("(@) [" + getTimestamp() + " - " + user + "] " + msg + "...");
     }
 
     public void sendNotice(String msg) {
-        System.out.println("(i) [" + getTimestamp() + "] " + msg + ".");
+        System.out.println("(i) [" + getTimestamp() + " - " + user + "] " + msg + ".");
     }
 
     public void sendAlert(String msg) {
-        System.out.println("(!) [" + getTimestamp() + "] " + msg + ".");
+        System.out.println("(!) [" + getTimestamp() + " - " + user + "] " + msg + ".");
         if (isShowing()) {
             JOptionPane.showMessageDialog(this, "(!) [" + getTimestamp() + "] " + msg + ".", "Warning",
                     JOptionPane.WARNING_MESSAGE);
@@ -616,6 +621,6 @@ public class GUI extends JFrame implements ActionListener {
             sendAlert("Error while updating Chatbox: " + e.getMessage());
         }
         chatbox.setDocument(content);
-        System.out.println("(>) [" + getTimestamp() + "] " + "(" + u + "): " + msg);
+        System.out.println("(>) [" + getTimestamp() + " - " + user + "] " + "(" + u + "): " + msg);
     }
 }

@@ -17,7 +17,25 @@ public class Client extends GUI {
         super("client");
     }
 
-    public void connect() {
+    public void launch() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (isShowing()) {
+                    if (screenID == 76) {
+                        connect();
+                    }
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        }, "Handle login").start();
+    }
+
+    private void connect() {
         // Conect to specified server (if logged in successfully)
         if (registerStarted) {
             register();
@@ -28,6 +46,7 @@ public class Client extends GUI {
         }
         authStarted = false;
         if (!authenticate()) {
+            user = defaultUser;
             sendAlert("Error while authenticating client: Wrong username or password");
             if (--failsafeFlag <= 0) {
                 sendAlert("Critical: Too many failed attempts, closing client");
@@ -46,16 +65,21 @@ public class Client extends GUI {
             sendNotice("Connection made successfully");
             sendInfoToServer();
 
+            // Check if connection up and window showing
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    checkConnection();
+                }
+            }, "Check connection").start();
+
             // Start Main Menu
             mainStart();
             msgStr = "<b>" + user + "</b> entered the chat. Please be civilized.";
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    while (true) {
-                        if (!connectStarted) {
-                            return;
-                        }
+                    while (connectStarted) {
                         listen();
                     }
                 }
@@ -66,12 +90,26 @@ public class Client extends GUI {
         }
     }
 
+    private void checkConnection() {
+        while (true) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            if (!connectStarted || !isShowing()) {
+                break;
+            }
+        }
+        endConnection();
+    }
+
     private void register() {
         if (user.equals("ADMIN")) {
             sendAlert("Error while registering client: Username '" + user + "' is reserved");
             return;
         }
-        if (!authenticate(true)) {   
+        if (!authenticate(true)) {
             File file = new File("Data/user-accounts.csv");
             FileWriter fw = null;
             try {
