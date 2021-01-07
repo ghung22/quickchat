@@ -20,7 +20,7 @@ https://web.mit.edu/6.005/www/sp14/psets/ps4/java-6-tutorial/components.html
       +  427: ReQuesT
       +  356: MeSsaGe
       +  477: ATenTion
-      +  103: InfOMation
+      +  706: LOGin
    -  Screen IDs:
       +  0:  No GUI
       +  76: LoGin
